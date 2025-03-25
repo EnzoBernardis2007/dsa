@@ -27,19 +27,17 @@ Node* createNode(char value) {
 }
 
 void addNode(Node *root, int count, ...) {
-    if(root == NULL) {
-        return;
-    }
+    if(root == NULL) return;
 
     va_list args;
     va_start(args, count);
 
-    for(int i = 0; i < count ; i++) {
+    for(int i = 0; i < count; i++) {
         if(root->count >= MAX) {
             break;
         }
 
-        root->next[root->count] = createNode(va_arg(args, int));
+        root->next[root->count] = createNode((char)va_arg(args, int)); // Corrigido va_arg para char
         root->count++;
     }
 
@@ -116,12 +114,112 @@ Node* search(Node* root, char value) {
     return NULL;
 }
 
+void findParent(Node* root, char value, Node** parent, int* index) {
+    if(root == NULL) return;
+
+    for(int i = 0; i < root->count; i++) {
+        if(root->next[i]->data == value) {
+            *parent = root;
+            *index = i;
+            return;
+        }
+        findParent(root->next[i], value, parent, index);
+    }
+}
+
+void removeSubtree(Node* node) {
+    if(node == NULL) return;
+
+    for(int i = 0; i < node->count; i++) {
+        removeSubtree(node->next[i]);
+    }
+
+    free(node);
+}
+
+void removeNodeAndChild(Node* root, char value) {
+    if(root == NULL) return;
+
+    if(root->data == value) {
+        printf("Não é possível remover a raiz.\n");
+        return;
+    }
+
+    Node* parent = NULL;
+    int index = -1;
+
+    findParent(root, value, &parent, &index);
+
+    if(parent != NULL && index != -1) {
+        removeSubtree(parent->next[index]);
+
+        for(int i = index; i < parent->count - 1; i++) {
+            parent->next[i] = parent->next[i + 1];
+        }
+
+        parent->next[parent->count - 1] = NULL;
+        parent->count--;
+    }
+}
+
+int countLeafs(Node* root) {    
+    if(root == NULL) return 0;
+    if(root->count == 0) return 1;
+    
+    int total = 0;
+
+    for(int i = 0; i < root->count; i++) {
+        total += countLeafs(root->next[i]);
+    }
+
+    return total;
+}
+
+int nodesInLevel(Node* root, int level, int currentLevel) {
+    if(root == NULL) return 0;
+
+    if(currentLevel == level) return 1;
+
+    int total = 0;
+
+    for(int i = 0; i < root->count; i++) {
+        total += nodesInLevel(root->next[i], level, currentLevel + 1);
+    }
+
+    return total;
+}
+
+bool isBinary(Node* root) {
+    for(int i = 0; i < root->count; i++) {
+        if(!(root->count != 2 && root->count != 0)) {
+            isBinary(root->next[i]);
+        } else {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void invertTree(Node* root) {
+    if(root == NULL) return;
+
+    for(int i = 0, j = root->count - 1; i < j; i++, j--) {
+        Node* temp =root->next[i];
+        root->next[i] = root->next[j];
+        root->next[j] = temp;
+    }
+
+    for(int i = 0; i < root->count; i++) {
+        invertTree(root->next[i]);
+    }
+}
+
 int main() {
     Node* root = createNode('A');
     addNode(root, 3, 'B', 'C', 'D');
-    addNode(root, 1, 'E');
-    addNode(root->next[0], 2, 'F', 'G');
+    addNode(root->next[1], 2, 'E', 'F');
+    addNode(root->next[1], 4, 'G', 'H', 'I', 'J');
     show(root, 0);
-    printf("Height: %d\n", height(root));
     return 0;
 }
